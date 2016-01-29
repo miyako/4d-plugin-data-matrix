@@ -1,12 +1,24 @@
 # 4d-plugin-data-matrix
 
-About
----
 4D implementation of [libdmtx](http://libdmtx.sourceforge.net).
 
-###TODO
+##Platform
 
-The "read" feature is not implemented.
+| carbon | cocoa | win32 | win64 |
+|:------:|:-----:|:---------:|:---------:|
+|🆗|🆗|🆗|🆗|
+
+
+* TODO: The "read" feature is not implemented.
+
+Commands
+---
+
+```c
+// --- data-matrix
+DMTX
+DMTX_Read_image //not implemented
+```
 
 Example
 ---
