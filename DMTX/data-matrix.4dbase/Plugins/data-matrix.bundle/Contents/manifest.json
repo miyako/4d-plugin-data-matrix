@@ -1,1 +1,1 @@
-﻿{"name":"data-matrix","id":20000,"commands":[{"theme":"data-matrix","syntax":"DMTX(&T;&L;&L;&L;&L;&L;&L;&T):P"},{"theme":"data-matrix","syntax":"DMTX Read image(&L;&Y):T"}]}
+﻿{"name":"data-matrix","id":20000,"commands":[{"theme":"data-matrix","syntax":"DMTX(&T;&L;&L;&L;&L;&L;&L;&T):P"},{"theme":"data-matrix","syntax":"DMTX Read image(&P;&Y):T"}]}

@@ -337,16 +337,201 @@ void DMTX(sLONG_PTR *pResult, PackagePtr pParams)
 	outData.toParamAtIndex(pParams, 8);
 }
 
+#define Scaled_to_fit_proportional (5)
+#define CREATE_THUMBNAIL (679)
+
+namespace barcode
+{
+				PA_Picture reduceImage(PackagePtr pParams, uint32_t index, int size = 512)
+				{
+					PA_Picture p = *(PA_Picture *)(pParams[index - 1]);
+				//create thumbnail
+					PA_Variable args[5];
+					args[0] = PA_CreateVariable(eVK_Picture);
+					args[1] = PA_CreateVariable(eVK_Picture);	
+					args[2] = PA_CreateVariable(eVK_Longint);		
+					args[3] = PA_CreateVariable(eVK_Longint);
+					PA_SetPictureVariable(&args[0], p);
+					PA_SetLongintVariable(&args[2], size);
+					PA_SetLongintVariable(&args[3], size);
+					PA_SetLongintVariable(&args[4], Scaled_to_fit_proportional);
+					PA_ExecuteCommandByID(CREATE_THUMBNAIL, args, 5);
+					p = PA_GetPictureVariable(args[1]);
+					PA_SetPictureVariable(&args[0], NULL);	
+					PA_SetPictureVariable(&args[1], NULL);
+					PA_ClearVariable(&args[0]);		
+					PA_ClearVariable(&args[1]);
+					PA_ClearVariable(&args[2]);
+					PA_ClearVariable(&args[3]);
+					PA_ClearVariable(&args[4]);
+					return p;
+				}
+				#if VERSIONMAC
+				typedef CGImageRef Image;
+				#else
+				typedef Gdiplus::Bitmap *Image;
+				#endif
+				typedef std::vector<uint8_t> Buf;
+				Image createImage(PA_Picture p)
+				{
+#if VERSIONMAC
+					return (Image)PA_CreateNativePictureForScreen(p);
+#else
+					return (Image)PA_CreateNativePictureForScreen(p);
+#endif
+				}
+				void disposeImage(Image image)
+				{
+								if(image)
+								{
+								#if VERSIONMAC
+												CGImageRelease(image);
+								#else
+												image->Dispose();
+								#endif
+								}
+				}
+				void getBuf(Image image, Buf &buf, int *width, int *height)
+				{
+#if VERSIONMAC
+						size_t w = CGImageGetWidth(image);
+						size_t h = CGImageGetHeight(image);
+						*width = w;
+						*height = h;
+						size_t size = w * h;
+						buf.resize(size);
+						
+						CGContextRef ctx = NULL;
+						CGColorSpaceRef colorSpace = NULL;
+						
+						size_t bitmapBytesPerRow   = (w * 4);
+						size_t bitmapByteCount     = (bitmapBytesPerRow * h);
+						
+						std::vector<uint8_t> bitmapData(bitmapByteCount);
+						
+						colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB);
+						
+						if (colorSpace){
+							
+							ctx = CGBitmapContextCreate ((void *)&bitmapData[0],
+															w,
+															h,
+															8,      // bits per component
+															bitmapBytesPerRow,
+															colorSpace,
+															kCGImageAlphaPremultipliedFirst);
+							
+							CGColorSpaceRelease(colorSpace);
+							
+						}
+						
+						if (ctx){
+							
+							CGRect rect = {{0,0},{w,h}};
+							
+							CGContextDrawImage(ctx, rect, image); 
+							
+							size_t *pixels = (size_t *)CGBitmapContextGetData (ctx);
+							
+							uint32_t pixel, y8;
+							size_t i = 0;
+							
+							for(size_t y = 0; y < h; y++) {
+								for(size_t x = 0; x < w; x++) {
+									pixel = pixels[y*w+x];
+									y8 = (pixel >> 24) & 0xFF;
+									buf[i] = y8;
+									i++;
+								}
+							}
+							CGContextRelease(ctx); 
+						}
+						
+				#else
+						size_t w = image->GetWidth();
+						size_t h = image->GetHeight();
+						*width = w;
+						*height = h;
+						size_t size = w * h;
+						buf.resize(size);
+						
+						uint32_t y8;
+						size_t i = 0;
+						
+						for(size_t y = 0; y < h; y++) {
+							for(size_t x = 0; x < w; x++) {
+								
+								Gdiplus::Color c;
+								image->GetPixel(x,y,&c);
+								
+								y8 = c.GetR();
+								buf[i] = y8;
+								i++;
+							}
+						}
+				#endif
+				}
+}
+
 void DMTX_Read_image(sLONG_PTR *pResult, PackagePtr pParams)
 {
-	C_LONGINT barcodeImage;
 	ARRAY_TEXT values;
 	C_TEXT returnValue;
 
-	barcodeImage.fromParamAtIndex(pParams, 1);
+	values.setSize(1);
 
-	// --- write the code of DMTX_Read_image here...
+	barcode::Image image;
+	
+if(1)
+{
+				PA_Picture p = barcode::reduceImage(pParams, 1);
+				image = barcode::createImage(p);
+				PA_DisposePicture(p);//important that we do this if we reduceImage!
+}
+else
+{
+					PA_Picture p = *(PA_Picture *)(pParams[0]);
+					image = barcode::createImage(p);
+}
 
+ barcode::Buf buf;
+	int w = 0, h = 0;
+	barcode::getBuf(image, buf, &w, &h);
+
+		DmtxImage *img = dmtxImageCreate(&buf[0], w, h, DmtxPack8bppK);			
+		
+		if(img)
+		{
+			DmtxDecode *dec = dmtxDecodeCreate(img, 1);
+			if(dec)
+			{
+			
+				DmtxTime timeout = dmtxTimeNow();
+				timeout.sec++;
+				
+				DmtxRegion *reg;
+				while((reg = dmtxRegionFindNext(dec, &timeout)) != 0)
+				{
+								PA_YieldAbsolute();
+								DmtxMessage *msg = dmtxDecodeMatrixRegion(dec, reg, DmtxUndefined);
+								if(msg)
+								{
+												values.appendUTF8String(msg->output, msg->outputSize);
+												if(!returnValue.getUTF16Length())
+																returnValue.setUTF8String(msg->output, msg->outputSize);
+												dmtxMessageDestroy(&msg);
+								}
+								dmtxRegionDestroy(&reg);
+								timeout = dmtxTimeNow();
+								timeout.sec++;
+				}
+				dmtxDecodeDestroy(&dec);
+			}
+			dmtxImageDestroy(&img);
+		}
+
+ barcode::disposeImage(image);
+	
 	values.toParamAtIndex(pParams, 2);
 	returnValue.setReturn(pResult);
 }

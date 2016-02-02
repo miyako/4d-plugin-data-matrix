@@ -440,10 +440,7 @@
 				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = "$(HOME)/Library/Bundles";
-				LIBRARY_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/lib/64",
-					"$(PROJECT_DIR)/lib/32",
-				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/lib/64";
 				LIBRARY_STYLE = Bundle;
 				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "";
@@ -480,10 +477,7 @@
 				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = "$(HOME)/Library/Bundles";
-				LIBRARY_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/lib/64",
-					"$(PROJECT_DIR)/lib/32",
-				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/lib/64";
 				LIBRARY_STYLE = Bundle;
 				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "";
@@ -518,11 +512,7 @@
 				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = "$(HOME)/Library/Bundles";
-				LIBRARY_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/data-matrix.4dbase/Plugins/data-matrix.bundle/Contents/MacOS",
-					"$(PROJECT_DIR)/lib/64",
-					"$(PROJECT_DIR)/lib/32",
-				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/lib/64";
 				LIBRARY_STYLE = Bundle;
 				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "";
