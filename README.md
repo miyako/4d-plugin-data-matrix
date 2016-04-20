@@ -8,16 +8,13 @@
 |:------:|:-----:|:---------:|:---------:|
 |🆗|🆗|🆗|🆗|
 
-
-* ~~TODO: The "read" feature is not implemented.~~
-
 Commands
 ---
 
 ```c
 // --- data-matrix
 DMTX
-DMTX_Read_image
+DMTX Read image
 ```
 
 Example
