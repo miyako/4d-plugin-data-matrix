@@ -433,15 +433,35 @@ namespace barcode
 							
 							size_t *pixels = (size_t *)CGBitmapContextGetData (ctx);
 							
-							uint32_t pixel, y8;
+							size_t pixel, y8;
 							size_t i = 0;
-							
+#if __LP64__
+							BOOL alt = false;
+							size_t j = 0;
+#endif
 							for(size_t y = 0; y < h; y++) {
 								for(size_t x = 0; x < w; x++) {
-									pixel = pixels[y*w+x];
+#if __LP64__
+									if(!alt)
+									{
+										pixel = pixels[j];
+										y8 = (pixel >> 24) & 0xFF;
+									}
+									else
+									{
+										pixel = pixels[j];
+										y8 = (pixel >> 56) & 0xFF;
+										j++;
+									}
+									buf[i] = y8;
+									i++;
+									alt = !alt;
+#else
+									pixel = pixels[i];
 									y8 = (pixel >> 24) & 0xFF;
 									buf[i] = y8;
 									i++;
+#endif
 								}
 							}
 							CGContextRelease(ctx); 
