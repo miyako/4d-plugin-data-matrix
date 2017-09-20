@@ -98,7 +98,8 @@ namespace barcode
 #if VERSIONMAC
 			CGImageRelease(image);
 #else
-			image->Dispose();
+			image->operator delete[];
+			//image->Dispose();
 #endif
 		}
 	}

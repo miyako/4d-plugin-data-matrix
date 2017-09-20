@@ -21,6 +21,12 @@ enum output_type_t
 	DMTX_OUTPUT_PNG = 2
 };
 
+#if VERSIONWIN
+#include <gdiplus.h>
+#define _false FALSE
+#define _true TRUE
+#endif
+
 namespace barcode
 {
 #if VERSIONMAC
