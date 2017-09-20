@@ -47,8 +47,8 @@ $data:=""
 $value:="18000000011522042528120000355250541000002277743896"
 
 $image:=DMTX ($value;DMTX Format JPG;DMTX Scheme ASCII;$moduleSize;DMTX Symbol 16x48;$margin;$DPI;$data)
-$jpg_size:=Picture size($image)  //4701 (not as small because it is grayscale)
-$jpg_base64_size:=Length($data)  //6355
+$jpg_size:=Picture size($image)  //4,701 (not as small because it is grayscale)
+$jpg_base64_size:=Length($data)  //6,355
 WRITE PICTURE FILE(System folder(Desktop)+"sample_dmtx.jpg";$image;".jpg")
 
 $image:=DMTX ($value;DMTX Format PNG;DMTX Scheme ASCII;$moduleSize;DMTX Symbol 16x48;$margin;$DPI;$data)
@@ -58,6 +58,6 @@ WRITE PICTURE FILE(System folder(Desktop)+"sample_dmtx.png";$image;".png")
 
 $image:=DMTX ($value;DMTX Format SVG;DMTX Scheme ASCII;$moduleSize;DMTX Symbol 16x48;$margin;$DPI;$data)
 $svg_size:=Picture size($image)  //260,594 (very large because it is text) 
-$svg_xml_length:=Length($data)  //260594
+$svg_xml_length:=Length($data)  //260,594
 WRITE PICTURE FILE(System folder(Desktop)+"sample_dmtx.svg";$image;".svg")
 ```
