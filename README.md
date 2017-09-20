@@ -18,6 +18,10 @@ Read about [Datamatrix](http://jpgraph.net/download/manuals/chunkhtml/ch26.html)
 
 ``JPG`` support.
 
+### Features
+
+Uses ``libpng`` or ``libjpeg`` to create native images. ``PNG`` offers the best in terms of size and quality, because the colorspace is ``PNG_COLOR_TYPE_PALETTE``. 
+
 ## Examples
 
 ```
