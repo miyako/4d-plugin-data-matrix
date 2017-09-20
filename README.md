@@ -30,16 +30,10 @@ $margin:=2
 $DPI:=96
 $data:=""  //out param (svg source code)
 
-  //http://jpgraph.net/download/manuals/chunkhtml/ch26.html
-If (Shift down)
-$image:=DMTX ("1"*98;DMTX Format PNG;DMTX Scheme ASCII;$moduleSize;DMTX Symbol 16x48;$margin;$DPI;$data)
-Else 
-$image:=DMTX ("1"*98;DMTX Format SVG;DMTX Scheme ASCII;$moduleSize;DMTX Symbol 16x48;$margin;$DPI;$data)
-  //rasterize
-CONVERT PICTURE($image;".png")
-End if 
-
-SET PICTURE TO PASTEBOARD($image)
+$value:="18000000011522042528120000355250541000002277743896"
+$image:=DMTX ($value;DMTX Format PNG;DMTX Scheme ASCII;$moduleSize;DMTX Symbol 16x48;$margin;$DPI;$data)
+$image:=$image/$image/$image/$image
+$text:=DMTX Read image ($image;$texts)
 ```
 
 ```
