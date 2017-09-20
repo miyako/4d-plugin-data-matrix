@@ -463,8 +463,8 @@ namespace JPG
 				cinfo.X_density = dpi;
 				cinfo.Y_density = dpi;
 				cinfo.write_JFIF_header = _true;
-//				jpeg_set_quality(&cinfo, 100, _true);
-				jpeg_set_quality(&cinfo, 0, _true);
+				jpeg_set_quality(&cinfo, 100, _true);
+//				jpeg_set_quality(&cinfo, 75, _true);
 				jpeg_simple_progression(&cinfo);
 				cinfo.optimize_coding = _true;
 				jpeg_start_compress(&cinfo, _true);
