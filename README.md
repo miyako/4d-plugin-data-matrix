@@ -20,7 +20,7 @@ Read about [Datamatrix](http://jpgraph.net/download/manuals/chunkhtml/ch26.html)
 
 ### Features
 
-Uses ``libpng`` or ``libjpeg`` to create native images. ``PNG`` offers the best in terms of size and quality, because the colorspace is ``PNG_COLOR_TYPE_PALETTE``. ``JPEG`` colorspace  is ``JCS_GRAYSCALE``, with quality ``0``, but still not as small as ``PNG``. ``SVG``, by contrast, is quite large.
+Uses ``libpng`` or ``libjpeg`` to create native images. ``PNG`` offers the best in terms of size and quality, because the colorspace is ``PNG_COLOR_TYPE_PALETTE``. ``JPEG`` colorspace  is ``JCS_GRAYSCALE``, with quality ``100``, which is not as small as ``PNG``. ``SVG``, by contrast, is very large.
 
 ## Examples
 
