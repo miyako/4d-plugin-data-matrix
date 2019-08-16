@@ -2,6 +2,10 @@
 
 4D implementation of [libdmtx 0.7.5](https://github.com/dmtx/libdmtx).
 
+**TODO**: use collection instead of array
+
+note: check "create thumbnail" in preemtive mode  
+
 ### Platform
 
 | carbon | cocoa | win32 | win64 |
