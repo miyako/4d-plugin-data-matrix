@@ -177,7 +177,7 @@
 		"lastSelectedLine": 0,
 		"folding": [],
 		"bookmarks": [],
-		"stamp": "2019-08-16T22:29:24.000Z"
+		"stamp": "2019-08-16T22:52:01.348Z"
 	},
 	"Sources/Methods/TEST_v17.4dm": {
 		"startSelection": 0,
@@ -187,5 +187,14 @@
 		"folding": [],
 		"bookmarks": [],
 		"stamp": "2019-07-07T00:13:49.000Z"
+	},
+	"Sources/Methods/TEST_2.4dm": {
+		"startSelection": 35,
+		"endSelection": 35,
+		"firstSelectedLine": 8,
+		"lastSelectedLine": 8,
+		"folding": [],
+		"bookmarks": [],
+		"stamp": "2019-08-17T05:28:20.855Z"
 	}
 }

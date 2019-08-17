@@ -27,7 +27,7 @@
 #ifndef min
 #define min(a,b) (((a) < (b)) ? (a) : (b))
 #endif
-
+#include "shlwapi.h"
 #include <gdiplus.h>
 #endif
 
@@ -35,6 +35,7 @@
 
 void DMTX(PA_PluginParameters params);
 void DMTX_Read_image(PA_PluginParameters params);
+void DMTX_Read_images(PA_PluginParameters params);
 
 enum output_type_t
 {
@@ -66,6 +67,8 @@ namespace barcode
 #define Scaled_to_fit_proportional (5)
 #define CREATE_THUMBNAIL (679)
 #define Picture_size (356)
+#define CONVERT_PICTURE  (1002)
+#define PICTURE_PROPERTIES (457)
 
 void write_data_fn(png_structp png_ptr, png_bytep buf, png_size_t size);
 void output_flush_fn(png_structp png_ptr);

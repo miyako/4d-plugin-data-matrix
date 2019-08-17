@@ -26,6 +26,9 @@ void PluginMain(PA_long32 selector, PA_PluginParameters params) {
 			case 2 :
 				DMTX_Read_image(params);
 				break;
+            case 3 :
+                DMTX_Read_images(params);
+                break;
 
         }
 
@@ -38,8 +41,8 @@ void PluginMain(PA_long32 selector, PA_PluginParameters params) {
 
 namespace barcode
 {
-    PA_Picture reduceImage(PA_PluginParameters params, short index, int size = 512)
-    {
+    PA_Picture reduceImage(PA_PluginParameters params, short index, size_t size = 512) {
+        
         PA_Picture p = PA_GetPictureParameter(params, index);
         
         //create thumbnail
@@ -51,12 +54,12 @@ namespace barcode
         args[3] = PA_CreateVariable(eVK_Longint);
         
         PA_SetPictureVariable(&args[0], p);
-        PA_SetLongintVariable(&args[2], size);
-        PA_SetLongintVariable(&args[3], size);
+        PA_SetLongintVariable(&args[2], (int)size);
+        PA_SetLongintVariable(&args[3], (int)size);
         PA_SetLongintVariable(&args[4], Scaled_to_fit_proportional);
         
         PA_ExecuteCommandByID(CREATE_THUMBNAIL, args, 5);
-        p = PA_GetPictureVariable(args[1]);
+        p = PA_GetPictureVariable(args[1]);/* this is a new picture that belongs to 4D; do not dispose it */
         
         PA_SetPictureVariable(&args[0], NULL);
         PA_SetPictureVariable(&args[1], NULL);
@@ -70,9 +73,9 @@ namespace barcode
         return p;
     }
     
-    PA_long32 imageSize(PA_Picture p)
-    {
-        //create thumbnail
+    PA_long32 imageSize(PA_Picture p) {
+        
+        //picture size
         PA_Variable args[1];
         args[0] = PA_CreateVariable(eVK_Picture);
         PA_SetPictureVariable(&args[0], p);
@@ -83,15 +86,95 @@ namespace barcode
         return size;
     }
     
-    Image createImage(PA_Picture p)
-    {
-        return (Image)PA_CreateNativePictureForScreen(p);
+    Image createImage(PA_Picture p) {
+        
+        if(!PA_IsCompiled(0))
+        {
+            return (Image)PA_CreateNativePictureForScreen(p);
+            /* this image needs to be released */
+        }else
+        {
+            Image i = NULL;
+            
+            //convert picture
+            PA_Variable args[3];
+            args[0] = PA_CreateVariable(eVK_Picture);
+            PA_SetPictureVariable(&args[0], p);
+            args[1] = PA_CreateVariable(eVK_Unistring);
+            PA_Unistring ustr = PA_CreateUnistring((PA_Unichar *)".\0b\0m\0p\0\0\0");
+            PA_SetStringVariable(&args[1], &ustr);
+            
+            PA_ExecuteCommandByID(CONVERT_PICTURE, args, 2);
+            
+            p = PA_GetPictureVariable(args[0]);/* the picture has been converted */
+            
+            PA_SetPictureVariable(&args[0], NULL);
+            
+            PA_ClearVariable(&args[0]);
+            PA_ClearVariable(&args[1]);
+            
+#if VERSIONWIN
+            args[0] = PA_CreateVariable(eVK_Picture);
+            PA_SetPictureVariable(&args[0], p);
+            args[1] = PA_CreateVariable(eVK_Longint);
+            args[2] = PA_CreateVariable(eVK_Longint);
+            
+            PA_ExecuteCommandByID(PICTURE_PROPERTIES, args, 3);
+            
+            int _w = PA_GetLongintVariable(args[1]);
+            int _h = PA_GetLongintVariable(args[2]);
+            
+            PA_SetPictureVariable(&args[0], NULL);
+            
+            PA_ClearVariable(&args[0]);
+            PA_ClearVariable(&args[1]);
+            PA_ClearVariable(&args[2]);
+#endif
+            
+            PA_Handle h = PA_NewHandle(0);
+            
+            PA_ErrorCode err = eER_NoErr;
+            PA_GetPictureData(p, 1, h);
+            err = PA_GetLastError();
+            
+            if(err == eER_NoErr)
+            {
+#if VERSIONMAC
+                NSData *data = [[NSData alloc]initWithBytes:PA_LockHandle(h) length:PA_GetHandleSize(h)];
+                PA_UnlockHandle(h);
+                NSImage *image = [[NSImage alloc]initWithData:data];
+                i = [image CGImageForProposedRect:NULL context:NULL hints:NULL];
+                /* this image does NOT need to be released */
+                [image release];
+                [data release];
+                
+                CFRetain(i);/* because we release it in the end */
+#else
+				IStream *istream = SHCreateMemStream((const BYTE *)PA_LockHandle(h), PA_GetHandleSize(h));
+				i = Gdiplus::Bitmap::FromStream(istream);
+				istream->Release();
+				PA_UnlockHandle(h);
+
+				/*
+				
+				not thread safe on windows 7
+				https://docs.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-shcreatememstream
+
+				*/
+#endif
+            }
+
+            PA_DisposeHandle(h);
+
+            return i;
+        }
     }
     void disposeImage(Image image)
     {
         if(image)
         {
 #if VERSIONMAC
+            
             CGImageRelease(image);
 #else
             image->operator delete[];
@@ -99,14 +182,12 @@ namespace barcode
 #endif
         }
     }
-    void getBuf(Image image, Buf &buf, int *width, int *height)
+    void getBuf(Image image, Buf &buf, size_t w, size_t h)
     {
 #if VERSIONMAC
-        size_t w = CGImageGetWidth(image);
-        size_t h = CGImageGetHeight(image);
-        *width = (int)w;
-        *height = (int)h;
+
         size_t size = w * h;
+        
         buf.resize(size);
         
         CGContextRef ctx = NULL;
@@ -176,10 +257,6 @@ namespace barcode
         }
         
 #else
-        size_t w = image->GetWidth();
-        size_t h = image->GetHeight();
-        *width = w;
-        *height = h;
         size_t size = w * h;
         buf.resize(size);
         
@@ -688,8 +765,6 @@ void output_flush_fn(png_structp png_ptr)
 
 #pragma mark -
 
-#pragma mark -
-
 void DMTX(PA_PluginParameters params) {
 
     sLONG_PTR *pResult = (sLONG_PTR *)params->fResult;
@@ -753,20 +828,65 @@ void DMTX(PA_PluginParameters params) {
 
 void DMTX_Read_image(PA_PluginParameters params) {
 
-    ARRAY_TEXT values;
     C_TEXT returnValue;
     
-    values.setSize(1);
+    barcode::Image image = 0;
     
-    barcode::Image image;
+    size_t w, h, size;
+    size = w = h = 512;
     
-    PA_Picture p = barcode::reduceImage(params, 1);
+    PA_Picture p = barcode::reduceImage(params, 1, size);
     image = barcode::createImage(p);
-    PA_DisposePicture(p);//important that we do this if we reduceImage!
     
     barcode::Buf buf;
-    int w = 0, h = 0;
-    barcode::getBuf(image, buf, &w, &h);
+    barcode::getBuf(image, buf, w, h);
+
+    DmtxImage *img = dmtxImageCreate(&buf[0], (int)w, (int)h, DmtxPack8bppK);
+    
+    if(img)
+    {
+        DmtxDecode *dec = dmtxDecodeCreate(img, 1);
+        if(dec)
+        {
+            DmtxTime timeout = dmtxTimeNow();
+            timeout.sec++;
+            DmtxRegion *reg;
+            if((reg = dmtxRegionFindNext(dec, &timeout)) != 0)
+            {
+                DmtxMessage *msg = dmtxDecodeMatrixRegion(dec, reg, DmtxUndefined);
+                if(msg)
+                {
+                    returnValue.setUTF8String(msg->output, (uint32_t)msg->outputSize);
+                    dmtxMessageDestroy(&msg);
+                }
+                dmtxRegionDestroy(&reg);
+            }
+            dmtxDecodeDestroy(&dec);
+        }
+        dmtxImageDestroy(&img);
+    }
+    
+    barcode::disposeImage(image);
+
+    sLONG_PTR *pResult = (sLONG_PTR *)params->fResult;
+    
+    returnValue.setReturn(pResult);
+}
+
+void DMTX_Read_images(PA_PluginParameters params) {
+    
+    PA_CollectionRef returnValue = PA_CreateCollection();
+    
+    barcode::Image image = 0;
+    
+    int w, h, size;
+    size = w = h = 512;
+    
+    PA_Picture p = barcode::reduceImage(params, 1, size);
+    image = barcode::createImage(p);
+    
+    barcode::Buf buf;
+    barcode::getBuf(image, buf, w, h);
     
     DmtxImage *img = dmtxImageCreate(&buf[0], w, h, DmtxPack8bppK);
     
@@ -782,13 +902,16 @@ void DMTX_Read_image(PA_PluginParameters params) {
             DmtxRegion *reg;
             while((reg = dmtxRegionFindNext(dec, &timeout)) != 0)
             {
-                PA_YieldAbsolute();
                 DmtxMessage *msg = dmtxDecodeMatrixRegion(dec, reg, DmtxUndefined);
                 if(msg)
                 {
-                    values.appendUTF8String(msg->output, (uint32_t)msg->outputSize);
-                    if(!returnValue.getUTF16Length())
-                        returnValue.setUTF8String(msg->output, (uint32_t)msg->outputSize);
+                    PA_Variable v = PA_CreateVariable(eVK_Unistring);
+                    C_TEXT u;
+                    u.setUTF8String(msg->output, (uint32_t)msg->outputSize);
+                    PA_Unistring ustr = PA_CreateUnistring((PA_Unichar *)u.getUTF16StringPtr());
+                    PA_SetStringVariable(&v, &ustr);
+                    PA_SetCollectionElement(returnValue, PA_GetCollectionLength(returnValue), v);
+                    PA_ClearVariable(&v);
                     dmtxMessageDestroy(&msg);
                 }
                 dmtxRegionDestroy(&reg);
@@ -802,9 +925,5 @@ void DMTX_Read_image(PA_PluginParameters params) {
     
     barcode::disposeImage(image);
 
-    sLONG_PTR *pResult = (sLONG_PTR *)params->fResult;
-    PackagePtr pParams = (PackagePtr)params->fParameters;
-    
-    values.toParamAtIndex(pParams, 2);
-    returnValue.setReturn(pResult);
+    PA_ReturnCollection(params, returnValue);
 }

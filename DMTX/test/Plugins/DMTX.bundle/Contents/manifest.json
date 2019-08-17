@@ -9,7 +9,12 @@
         },
         {
             "theme": "DMTX",
-            "syntax": "DMTX Read image(&P;&Y):T",
+            "syntax": "DMTX Read image(&P):T",
+            "threadSafe": true
+        },
+        {
+            "theme": "DMTX",
+            "syntax": "DMTX Read images(&P):C",
             "threadSafe": true
         }
     ]
