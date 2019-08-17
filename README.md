@@ -17,7 +17,7 @@ Barcode generator based on [libdmtx 0.7.5](https://github.com/dmtx/libdmtx).
 
 ### Discussion
 
-It seems the the library built using CMAKE on Mac does not work; using old copy. Passing array is still not thread safe. Must use collection instead (**TODO**). ``CREATE THUMBNAIL`` via ``PA_ExecuteCommandByID`` seems OK in preemptive mode. Also, ``CGImageGetWidth`` crashes in preemptive mode (not sure why).
+It seems the the library built using CMAKE on Mac does not work; using old copy. Passing array is still not thread safe. Must use collection instead (**TODO**). ``CREATE THUMBNAIL`` via ``PA_ExecuteCommandByID`` seems to fail in preemptive mode; ``CGImageGetWidth`` crashes.
 
 * Read about [Datamatrix](http://jpgraph.net/download/manuals/chunkhtml/ch26.html).
 
