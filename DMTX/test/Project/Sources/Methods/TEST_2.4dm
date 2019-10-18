@@ -6,7 +6,15 @@ $data:=""  //out param (svg source code)
 
 
 $value:="18000000011522042528120000355250541000002277743896"
-$image:=DMTX ($value;DMTX Format PNG;DMTX Scheme ASCII;$moduleSize;DMTX Symbol 16x48;$margin;$DPI;$data)
+$image:=DMTX ($value;\
+DMTX Format PNG;\
+DMTX Scheme ASCII;\
+$moduleSize;\
+DMTX Symbol 16x48;\
+$margin;\
+$DPI;\
+$data)
+
 $image:=$image/$image/$image/$image
 $text:=DMTX Read image ($image)
 
