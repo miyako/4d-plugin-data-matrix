@@ -16,7 +16,7 @@ Barcode generator based on [libdmtx 0.7.5](https://github.com/dmtx/libdmtx).
 
 ## Examples
 
-```
+```4d
 $moduleSize:=2
 $margin:=2
 $DPI:=96
@@ -28,7 +28,7 @@ $image:=$image/$image/$image/$image
 $text:=DMTX Read image ($image;$texts)
 ```
 
-```
+```4d
 $moduleSize:=2
 $margin:=2
 $DPI:=96
