@@ -12,7 +12,7 @@ Barcode generator based on [libdmtx 0.7.5](https://github.com/dmtx/libdmtx).
 
 [miyako.github.io](https://miyako.github.io/2019/08/17/4d-plugin-data-matrix.html)
 
-* Uses ``libpng`` or ``libjpeg`` to create native images. ``PNG`` offers the best in terms of size and quality, because the colorspace is ``PNG_COLOR_TYPE_PALETTE``. ``JPEG`` colorspace  is ``JCS_GRAYSCALE``, with quality ``100``, which is not as small as ``PNG``. ``SVG``, by contrast, is very large.
+* Uses ``libpng`` or ``libjpeg`` to create native images. ``PNG`` offers the best in terms of size and quality, because the colorspace is ``PNG_COLOR_TYPE_PALETTE``. ``JPEG`` colorspace  is ``JCS_GRAYSCALE``, with quality ``100``, which is not as small as ``PNG``. ``SVG``, by contrast, is large but easier to post-process in 4D.
 
 ## Examples
 
