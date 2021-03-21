@@ -12,12 +12,6 @@ Barcode generator based on [libdmtx 0.7.5](https://github.com/dmtx/libdmtx).
 
 [miyako.github.io](https://miyako.github.io/2019/08/17/4d-plugin-data-matrix.html)
 
-### Discussion
-
-Passing array is still not thread safe. Must use collection instead (~~**TODO**~~). ``CREATE THUMBNAIL`` via ``PA_ExecuteCommandByID`` seems OK in preemptive mode;, but ``CGImageGetWidth`` crashes. probably because ``PA_CreateNativePictureForScreen`` is not thread-safe. Need to perform offscreen BMP conversion (~~**TODO**~~).
-
-* Read about [Datamatrix](http://jpgraph.net/download/manuals/chunkhtml/ch26.html).
-
 * Uses ``libpng`` or ``libjpeg`` to create native images. ``PNG`` offers the best in terms of size and quality, because the colorspace is ``PNG_COLOR_TYPE_PALETTE``. ``JPEG`` colorspace  is ``JCS_GRAYSCALE``, with quality ``100``, which is not as small as ``PNG``. ``SVG``, by contrast, is very large.
 
 ## Examples
