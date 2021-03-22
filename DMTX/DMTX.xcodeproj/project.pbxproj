@@ -24,13 +24,13 @@
 		D10494AF23075FAF000631C8 /* ARRAY_TEXT.h in Headers */ = {isa = PBXBuildFile; fileRef = D10494AD23075FAF000631C8 /* ARRAY_TEXT.h */; };
 		D10494B023075FAF000631C8 /* ARRAY_TEXT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D10494AE23075FAF000631C8 /* ARRAY_TEXT.cpp */; };
 		D10494B523076232000631C8 /* libjpeg.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D10494B123076232000631C8 /* libjpeg.a */; };
-		D10494B623076232000631C8 /* libz.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D10494B223076232000631C8 /* libz.a */; };
 		D10494B723076232000631C8 /* libdmtx.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D10494B323076232000631C8 /* libdmtx.a */; };
 		D10494B823076232000631C8 /* libpng16.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D10494B423076232000631C8 /* libpng16.a */; };
 		D120937F13534DCC00A72CAA /* 4DPlugin-DMTX.h in Headers */ = {isa = PBXBuildFile; fileRef = D120937E13534DCC00A72CAA /* 4DPlugin-DMTX.h */; };
 		D130064F12F02D9700702C0E /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D130064E12F02D9700702C0E /* Cocoa.framework */; };
 		D13116A91A03ACB700DE1322 /* 4DPluginAPI.c in Sources */ = {isa = PBXBuildFile; fileRef = D13116A81A03ACB700DE1322 /* 4DPluginAPI.c */; settings = {COMPILER_FLAGS = "-Wno-multichar"; }; };
 		D134D4AC1A030BA0008D14EF /* manifest.json in CopyFiles */ = {isa = PBXBuildFile; fileRef = D134D4A91A030B06008D14EF /* manifest.json */; };
+		D15E3AC4260792EE0091EA15 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D15E3AC3260792EE0091EA15 /* libz.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -74,6 +74,7 @@
 		D13116A81A03ACB700DE1322 /* 4DPluginAPI.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = 4DPluginAPI.c; sourceTree = "<group>"; };
 		D134D4A91A030B06008D14EF /* manifest.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = manifest.json; sourceTree = "<group>"; };
 		D14D10DD1A03A8A5008B3411 /* constants.xlf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = constants.xlf; sourceTree = "<group>"; };
+		D15E3AC3260792EE0091EA15 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,8 +82,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D15E3AC4260792EE0091EA15 /* libz.tbd in Frameworks */,
 				D10494B523076232000631C8 /* libjpeg.a in Frameworks */,
-				D10494B623076232000631C8 /* libz.a in Frameworks */,
 				D10494B723076232000631C8 /* libdmtx.a in Frameworks */,
 				D10494B823076232000631C8 /* libpng16.a in Frameworks */,
 				D130064F12F02D9700702C0E /* Cocoa.framework in Frameworks */,
@@ -174,6 +175,7 @@
 		D16FBB3C22A4C07E008F0416 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				D15E3AC3260792EE0091EA15 /* libz.tbd */,
 				D10494B323076232000631C8 /* libdmtx.a */,
 				D10494B123076232000631C8 /* libjpeg.a */,
 				D10494B423076232000631C8 /* libpng16.a */,
@@ -362,7 +364,7 @@
 					"$(PROJECT_DIR)/a",
 				);
 				LIBRARY_STYLE = Bundle;
-				MARKETING_VERSION = 2.6.0;
+				MARKETING_VERSION = 2.7.0;
 				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "";
 				OTHER_REZFLAGS = "";
@@ -413,7 +415,7 @@
 					"$(PROJECT_DIR)/a",
 				);
 				LIBRARY_STYLE = Bundle;
-				MARKETING_VERSION = 2.6.0;
+				MARKETING_VERSION = 2.7.0;
 				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "";
 				OTHER_REZFLAGS = "";
@@ -462,7 +464,7 @@
 					"$(PROJECT_DIR)/a",
 				);
 				LIBRARY_STYLE = Bundle;
-				MARKETING_VERSION = 2.6.0;
+				MARKETING_VERSION = 2.7.0;
 				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "";
 				OTHER_REZFLAGS = "";
@@ -519,6 +521,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				OBJROOT = "$(SRCROOT)/build";
+				ONLY_ACTIVE_ARCH = NO;
 				SDKROOT = macosx;
 				SYMROOT = "$(SRCROOT)/test/Plugins";
 			};
@@ -563,6 +566,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				OBJROOT = "$(SRCROOT)/build";
+				ONLY_ACTIVE_ARCH = NO;
 				SDKROOT = macosx;
 				SYMROOT = "$(SRCROOT)/test/Plugins";
 			};
@@ -605,6 +609,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				ONLY_ACTIVE_ARCH = NO;
 				SDKROOT = macosx;
 				SYMROOT = "$(SRCROOT)/test/Plugins";
 			};

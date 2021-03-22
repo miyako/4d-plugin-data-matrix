@@ -1,15 +1,11 @@
 /**
  * libdmtx - Data Matrix Encoding/Decoding Library
  * Copyright 2008, 2009 Mike Laughton. All rights reserved.
- * Copyright 2012-2016 Vadim A. Misbakh-Soloviov. All rights reserved.
- * Copyright 2016 Tim Zaman. All rights reserved.
  *
  * See LICENSE file in the main project directory for full
  * terms of use and distribution.
  *
- * Contact:
- * Vadim A. Misbakh-Soloviov <dmtx@mva.name>
- * Mike Laughton <mike@dragonflylogic.com>
+ * Contact: Mike Laughton <mike@dragonflylogic.com>
  *
  * \file dmtx.h
  * \brief Main libdmtx header
@@ -163,7 +159,6 @@ typedef enum {
    DmtxPropSizeRequest,
    DmtxPropMarginSize,
    DmtxPropModuleSize,
-   DmtxPropFnc1,
    /* Decoding properties */
    DmtxPropEdgeMin           = 200,
    DmtxPropEdgeMax,
@@ -278,7 +273,6 @@ struct DmtxEncodeStream_struct
    int outputChainWordCount;  /* Count of output words pushed within current scheme chain */
    char *reason;              /* Reason for status */
    int sizeIdx;               /* Symbol size of completed stream */
-   int fnc1;                  /* Character to represent FNC1, or DmtxUndefined */
    DmtxStatus status;
    DmtxByteList *input;
    DmtxByteList *output;
@@ -396,7 +390,6 @@ typedef struct DmtxMessage_struct {
    size_t          outputSize;    /* Size of buffer used to hold decoded data */
    int             outputIdx;     /* Internal index used to store output progress */
    int             padCount;
-   int             fnc1;          /* Character to represent FNC1, or DmtxUndefined */
    unsigned char  *array;         /* Pointer to internal representation of Data Matrix modules */
    unsigned char  *code;          /* Pointer to internal storage of code words (data and error) */
    unsigned char  *output;        /* Pointer to internal storage of decoded output */
@@ -448,7 +441,6 @@ typedef struct DmtxDecode_struct {
    int             edgeMin;
    int             edgeMax;
    int             scanGap;
-   int             fnc1;
    double          squareDevn;
    int             sizeIdxExpected;
    int             edgeThresh;
@@ -480,7 +472,6 @@ typedef struct DmtxEncode_struct {
    int             pixelPacking;
    int             imageFlip;
    int             rowPadBytes;
-   int             fnc1;
    DmtxMessage    *message;
    DmtxImage      *image;
    DmtxRegion      region;
@@ -549,7 +540,6 @@ extern int dmtxDecodeGetProp(DmtxDecode *dec, int prop);
 extern /*@exposed@*/ unsigned char *dmtxDecodeGetCache(DmtxDecode *dec, int x, int y);
 extern DmtxPassFail dmtxDecodeGetPixelValue(DmtxDecode *dec, int x, int y, int channel, /*@out@*/ int *value);
 extern DmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
-extern DmtxMessage *dmtxDecodePopulatedArray(int sizeIdx, DmtxMessage *msg, int fix);
 extern DmtxMessage *dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
 extern unsigned char *dmtxDecodeCreateDiagnostic(DmtxDecode *dec, /*@out@*/ int *totalBytes, /*@out@*/ int *headerBytes, int style);
 
@@ -615,7 +605,6 @@ extern void dmtxMatrix3Print(DmtxMatrix3 m);
 extern int dmtxSymbolModuleStatus(DmtxMessage *mapping, int sizeIdx, int row, int col);
 extern int dmtxGetSymbolAttribute(int attribute, int sizeIdx);
 extern int dmtxGetBlockDataSize(int sizeIdx, int blockIdx);
-extern int getSizeIdxFromSymbolDimension(int rows, int cols);
 
 /* dmtxbytelist.c */
 extern DmtxByteList dmtxByteListBuild(DmtxByte *storage, int capacity);
