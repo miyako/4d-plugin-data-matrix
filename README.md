@@ -3,8 +3,6 @@
 [![license](https://img.shields.io/github/license/miyako/4d-plugin-data-matrix)](LICENSE)
 ![downloads](https://img.shields.io/github/downloads/miyako/4d-plugin-data-matrix/total)
 
-**Note**: for v17 and earlier, move `manifest.json` to `Contents`
-
 # 4d-plugin-data-matrix
 Barcode generator based on [libdmtx 0.7.5](https://github.com/dmtx/libdmtx).
 
