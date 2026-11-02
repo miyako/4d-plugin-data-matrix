@@ -182,7 +182,7 @@ namespace barcode
             
             CGImageRelease(image);
 #else
-            image->operator delete[];
+            delete image;
             //image->Dispose();
 #endif
         }
