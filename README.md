@@ -67,9 +67,9 @@ DMTX ( value ; format ; scheme ; moduleSize ; symbolSize ; margin ; dpi ; data )
 
 For example, `DMTX Symbol 16x48` (16 rows, 48 columns) with `moduleSize` 2 and `margin` 2 gives a 208 × 80 pixel picture.
 
-**Limits.** From the version after 2.7.0, `DMTX` returns an empty picture when `moduleSize` is negative or above 100, when `margin` is negative or above 1000, or when the result would be more than 32767 pixels wide or high. Earlier versions passed such values on unchecked, which could crash 4D.
+**Limits.** From 2.7.1, `DMTX` returns an empty picture when `moduleSize` is negative or above 100, when `margin` is negative or above 1000, or when the result would be more than 32767 pixels wide or high. Earlier versions passed such values on unchecked, which could crash 4D.
 
-**The `data` parameter** is filled from the version after 2.7.0. In 2.x versions up to 2.7.0 it was computed but never returned, so the variable kept its previous value.
+**The `data` parameter** is filled from 2.7.1. In 2.x versions up to 2.7.0 it was computed but never returned, so the variable kept its previous value.
 
 **Encodation schemes** (`DMTX Scheme` theme):
 
@@ -168,7 +168,7 @@ The command first reduces `image` to a thumbnail of at most 512 × 512 pixels (4
 - **On Windows**, the thumbnail's pixels are read as they are; the part of the 512 × 512 buffer outside a non-square thumbnail stays black (inferred from the source).
 - Because of the reduction to 512 pixels, a symbol that is small relative to a large picture may lose too much detail to be found (inferred). Crop the picture around the symbol first if decoding fails.
 
-An empty picture, or picture data that can't be turned into an image, returns `""`. Before the version after 2.7.0, such a picture could crash 4D on macOS in compiled mode.
+An empty picture, or picture data that can't be turned into an image, returns `""`. Before 2.7.1, such a picture could crash 4D on macOS in compiled mode.
 
 ### Example
 
