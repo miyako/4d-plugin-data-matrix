@@ -48,10 +48,11 @@ namespace barcode
         //create thumbnail
         PA_Variable args[5];
         
-        args[0] = PA_CreateVariable(eVK_Picture);
+        args[0] = PA_CreateVariable(eVK_Undefined);/* set below; eVK_Picture would allocate an empty picture that leaks */
         args[1] = PA_CreateVariable(eVK_Picture);
         args[2] = PA_CreateVariable(eVK_Longint);
         args[3] = PA_CreateVariable(eVK_Longint);
+        args[4] = PA_CreateVariable(eVK_Longint);
         
         PA_SetPictureVariable(&args[0], p);
         PA_SetLongintVariable(&args[2], (int)size);
@@ -77,7 +78,7 @@ namespace barcode
         
         //picture size
         PA_Variable args[1];
-        args[0] = PA_CreateVariable(eVK_Picture);
+        args[0] = PA_CreateVariable(eVK_Undefined);
         PA_SetPictureVariable(&args[0], p);
         PA_long32 size = PA_GetLongintVariable(PA_ExecuteCommandByID(Picture_size, args, 1));
         PA_SetPictureVariable(&args[0], NULL);
@@ -98,10 +99,10 @@ namespace barcode
             
             //convert picture
             PA_Variable args[3];
-            args[0] = PA_CreateVariable(eVK_Picture);
+            args[0] = PA_CreateVariable(eVK_Undefined);
             PA_SetPictureVariable(&args[0], p);
-            args[1] = PA_CreateVariable(eVK_Unistring);
-            PA_Unistring ustr = PA_CreateUnistring((PA_Unichar *)".\0b\0m\0p\0\0\0");
+            args[1] = PA_CreateVariable(eVK_Undefined);/* eVK_Unistring would allocate a string that the setter overwrites */
+            PA_Unistring ustr = PA_CreateUnistring((PA_Unichar *)u".bmp");
             PA_SetStringVariable(&args[1], &ustr);
             
             PA_ExecuteCommandByID(CONVERT_PICTURE, args, 2);
@@ -114,7 +115,7 @@ namespace barcode
             PA_ClearVariable(&args[1]);
             
 #if VERSIONWIN
-            args[0] = PA_CreateVariable(eVK_Picture);
+            args[0] = PA_CreateVariable(eVK_Undefined);
             PA_SetPictureVariable(&args[0], p);
             args[1] = PA_CreateVariable(eVK_Longint);
             args[2] = PA_CreateVariable(eVK_Longint);
@@ -140,19 +141,23 @@ namespace barcode
             if(err == eER_NoErr)
             {
 #if VERSIONMAC
-                NSData *data = [[NSData alloc]initWithBytes:PA_LockHandle(h) length:PA_GetHandleSize(h)];
-                PA_UnlockHandle(h);
-                NSImage *image = [[NSImage alloc]initWithData:data];
-                i = [image CGImageForProposedRect:NULL context:NULL hints:NULL];
-                /* this image does NOT need to be released */
-                [image release];
-                [data release];
-                
-                CFRetain(i);/* because we release it in the end */
+                @autoreleasepool {
+                    NSData *data = [[NSData alloc]initWithBytes:PA_LockHandle(h) length:PA_GetHandleSize(h)];
+                    PA_UnlockHandle(h);
+                    NSImage *image = [[NSImage alloc]initWithData:data];/* nil if the data is not an image */
+                    i = [image CGImageForProposedRect:NULL context:NULL hints:NULL];
+                    /* owned by the NSImage: retain it before the NSImage is released (we release it in the end) */
+                    if(i) CFRetain(i);
+                    [image release];
+                    [data release];
+                }
 #else
 				IStream *istream = SHCreateMemStream((const BYTE *)PA_LockHandle(h), PA_GetHandleSize(h));
-				i = Gdiplus::Bitmap::FromStream(istream);
-				istream->Release();
+				if(istream)
+				{
+					i = Gdiplus::Bitmap::FromStream(istream);
+					istream->Release();
+				}
 				PA_UnlockHandle(h);
 
 				/*
@@ -184,6 +189,12 @@ namespace barcode
     }
     void getBuf(Image image, Buf &buf, size_t w, size_t h)
     {
+        if(!image)
+        {
+            /* empty or unreadable picture: blank buffer, nothing will be decoded */
+            buf.assign(w * h, 0);
+            return;
+        }
 #if VERSIONMAC
 
         size_t size = w * h;
@@ -581,7 +592,8 @@ void toJPG(DmtxEncode *enc, int margin, int size, int dpi, C_TEXT &_dump, sLONG_
                                     p+=bytesPerPixel;
                                 }
                                 
-                                for(int col1 = 0; col1 < bytes_per_line; col1++)
+                                /* row holds (realwidth + 7) / 8 bytes; reading bytes_per_line of it overran the buffer */
+                                for(int col1 = 0; col1 < (realwidth + 7) / 8; col1++)
                                 {
                                     for(int col8 = 0; col8 < 8; col8++)
                                     {
@@ -612,7 +624,7 @@ void toJPG(DmtxEncode *enc, int margin, int size, int dpi, C_TEXT &_dump, sLONG_
                 *(PA_Picture*) pResult = picture;
                 
                 C_BLOB jpg;
-                jpg.setBytes((const uint8_t *)outbuffer, (unsigned int)barcode::imageSize(picture));
+                jpg.setBytes((const uint8_t *)outbuffer, (unsigned int)outbuffersize);
                 jpg.toB64Text(&_dump);
                 
                 free(outbuffer);
@@ -765,6 +777,17 @@ void output_flush_fn(png_structp png_ptr)
 
 #pragma mark -
 
+#define DMTX_MAX_MODULE_SIZE (100)
+#define DMTX_MAX_MARGIN_SIZE (1000)
+#define DMTX_MAX_OUTPUT_SIZE (32767)
+
+static bool outputSizeIsValid(long long pixels, long long margin, long long size)
+{
+    /* same formula as toPNG/toJPG/toSVG: (pixels + margin * 2) * size; margin and size are already bounded, so no overflow */
+    if(pixels <= 0) return false;
+    return ((pixels + margin * 2) * size) <= DMTX_MAX_OUTPUT_SIZE;
+}
+
 void DMTX(PA_PluginParameters params) {
 
     sLONG_PTR *pResult = (sLONG_PTR *)params->fResult;
@@ -790,12 +813,31 @@ void DMTX(PA_PluginParameters params) {
     output_type_t type = (output_type_t)inOutputFormat.getIntValue();// == DMTX_OUTPUT_SVG ? DMTX_OUTPUT_SVG : DMTX_OUTPUT_PNG;
     DmtxScheme scheme = (DmtxScheme)inScheme.getIntValue();
     DmtxSymbolSize symbolSize = (DmtxSymbolSize)inSymbolSize.getIntValue();
-    unsigned int moduleSize = inModuleSize.getIntValue();
+    int moduleSize = inModuleSize.getIntValue();
     moduleSize = moduleSize ? moduleSize : 1;
-    unsigned int marginSize = inMarginSize.getIntValue();
+    int marginSize = inMarginSize.getIntValue();
     int dpi = inDPI.getIntValue(); dpi = dpi > 0 ? dpi : 72;
+    dpi = dpi > 65535 ? 65535 : dpi;/* JPEG density is 16-bit; keeps the PNG pHYs value in range too */
+    
+    /*
+     negative values wrapped to huge unsigned sizes, and large ones overflowed the int
+     arithmetic in libdmtx and in toPNG/toJPG (heap corruption); treat them as an
+     encoding failure (empty picture) instead
+     */
+    if((moduleSize < 1) || (moduleSize > DMTX_MAX_MODULE_SIZE) || (marginSize < 0) || (marginSize > DMTX_MAX_MARGIN_SIZE)
+       /* even the smallest symbol (8 modules) would exceed the maximum output size: don't let libdmtx allocate it */
+       || (!outputSizeIsValid(8LL * moduleSize + 2LL * marginSize, marginSize, moduleSize)))
+    {
+        outData.toParamAtIndex(pParams, 8);
+        return;
+    }
     
     DmtxEncode *enc = dmtxEncodeCreate();
+    if(!enc)
+    {
+        outData.toParamAtIndex(pParams, 8);
+        return;
+    }
     dmtxEncodeSetProp(enc, DmtxPropScheme, scheme);
     dmtxEncodeSetProp(enc, DmtxPropModuleSize, moduleSize);
     dmtxEncodeSetProp(enc, DmtxPropMarginSize, marginSize);
@@ -806,7 +848,9 @@ void DMTX(PA_PluginParameters params) {
     int n = (int)str.size();
     unsigned char *s = (unsigned char *)str.c_str();
     
-    if(dmtxEncodeDataMatrix(enc, n, s)){
+    if((dmtxEncodeDataMatrix(enc, n, s)) && (enc->image)
+       && (outputSizeIsValid(dmtxImageGetProp(enc->image, DmtxPropWidth), marginSize, moduleSize))
+       && (outputSizeIsValid(dmtxImageGetProp(enc->image, DmtxPropHeight), marginSize, moduleSize))){
         
         switch(type){
             case DMTX_OUTPUT_PNG:
@@ -824,6 +868,9 @@ void DMTX(PA_PluginParameters params) {
     }
     
     dmtxEncodeDestroy(&enc);
+    
+    /* $data (SVG source or base64 PNG/JPEG); the v17 rewrite filled it but never returned it */
+    outData.toParamAtIndex(pParams, 8);
 }
 
 void DMTX_Read_image(PA_PluginParameters params) {
@@ -905,7 +952,7 @@ void DMTX_Read_images(PA_PluginParameters params) {
                 DmtxMessage *msg = dmtxDecodeMatrixRegion(dec, reg, DmtxUndefined);
                 if(msg)
                 {
-                    PA_Variable v = PA_CreateVariable(eVK_Unistring);
+                    PA_Variable v = PA_CreateVariable(eVK_Undefined);
                     C_TEXT u;
                     u.setUTF8String(msg->output, (uint32_t)msg->outputSize);
                     PA_Unistring ustr = PA_CreateUnistring((PA_Unichar *)u.getUTF16StringPtr());
