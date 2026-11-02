@@ -1,0 +1,11 @@
+.DS_Store
+build/
+test/Logs/
+test/Data/Logs/
+test/userPreferences.*/
+test/Project/DerivedData/
+test/Plugins/DMTX.bundle/Contents/MacOS/
+test/Plugins/DMTX.bundle/Contents/_CodeSignature/
+test/Plugins/Default/
+/DMTX.dmg
+/DMTX.zip
