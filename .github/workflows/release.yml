@@ -82,6 +82,41 @@ jobs:
       - name: setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
+      # The committed lib/windows64/libdmtx.lib and libz.lib were compiled
+      # with /GL by an older MSVC, which the v143 linker refuses (C1047).
+      # Rebuild both from pinned upstream sources with the runner's compiler.
+      # libdmtx v0.7.5's dmtx.h is identical to include/dmtx.h. libpng.lib and
+      # libjpeg.lib are plain UCRT objects and link as they are.
+      - name: fetch Windows library sources
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force deps | Out-Null
+          $sources = @(
+            @{ url = 'https://github.com/dmtx/libdmtx/archive/refs/tags/v0.7.5.tar.gz'; sha = 'BE0C5275695A732A5F434DED1FCC232AA63B1A6015C00044FE87F3A689B75F2E'; out = 'deps/libdmtx.tar.gz' },
+            @{ url = 'https://github.com/madler/zlib/releases/download/v1.3.1/zlib-1.3.1.tar.gz'; sha = '9A93B2B7DFDAC77CEBA5A558A580E74667DD6FEDE4585B91EEFB60F03B72DF23'; out = 'deps/zlib.tar.gz' }
+          )
+          foreach ($s in $sources) {
+            Invoke-WebRequest $s.url -OutFile $s.out
+            $hash = (Get-FileHash $s.out -Algorithm SHA256).Hash
+            if ($hash -ne $s.sha) { throw "checksum mismatch for $($s.out): $hash" }
+            tar -xzf $s.out -C deps
+          }
+
+      - name: build Windows libraries (libdmtx, zlib)
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do set "VSDIR=%%i"
+          call "%VSDIR%\VC\Auxiliary\Build\vcvars64.bat" || exit /b 1
+          pushd deps\libdmtx-0.7.5
+          cl /nologo /c /O2 /MT /DNDEBUG /D_CRT_SECURE_NO_WARNINGS dmtx.c || exit /b 1
+          lib /nologo /OUT:..\..\lib\windows64\libdmtx.lib dmtx.obj || exit /b 1
+          popd
+          pushd deps\zlib-1.3.1
+          cl /nologo /c /O2 /MT /DNDEBUG /D_CRT_SECURE_NO_WARNINGS adler32.c compress.c crc32.c deflate.c gzclose.c gzlib.c gzread.c gzwrite.c infback.c inffast.c inflate.c inftrees.c trees.c uncompr.c zutil.c || exit /b 1
+          lib /nologo /OUT:..\..\lib\windows64\libz.lib adler32.obj compress.obj crc32.obj deflate.obj gzclose.obj gzlib.obj gzread.obj gzwrite.obj infback.obj inffast.obj inflate.obj inftrees.obj trees.obj uncompr.obj zutil.obj || exit /b 1
+          popd
+
       - name: clean stale outputs
         shell: pwsh
         run: |
