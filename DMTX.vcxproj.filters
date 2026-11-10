@@ -27,6 +27,7 @@
       <Filter>4D Plugin API</Filter>
     </ClInclude>
     <ClInclude Include="4DPlugin-DMTX.h" />
+    <ClInclude Include="windows\scanner.h" />
     <ClInclude Include="4D Plugin API\Classes\ARRAY_TEXT.h" />
     <ClInclude Include="4D Plugin API\Classes\C_BLOB.h" />
     <ClInclude Include="4D Plugin API\Classes\C_LONGINT.h" />

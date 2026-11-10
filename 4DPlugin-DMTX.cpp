@@ -10,6 +10,10 @@
 
 #include "4DPlugin-DMTX.h"
 
+#if VERSIONWIN
+#include "windows/scanner.h"
+#endif
+
 #pragma mark -
 
 void PluginMain(PA_long32 selector, PA_PluginParameters params) {
@@ -873,6 +877,74 @@ void DMTX(PA_PluginParameters params) {
     outData.toParamAtIndex(pParams, 8);
 }
 
+namespace barcode
+{
+    /* run libdmtx over an 8-bit grayscale buffer; each region search gets about one second */
+    std::vector<std::string> decodeSymbols(Buf &buf, size_t w, size_t h, bool all)
+    {
+        std::vector<std::string> symbols;
+        
+        DmtxImage *img = dmtxImageCreate(&buf[0], (int)w, (int)h, DmtxPack8bppK);
+        
+        if(img)
+        {
+            DmtxDecode *dec = dmtxDecodeCreate(img, 1);
+            if(dec)
+            {
+                DmtxTime timeout = dmtxTimeNow();
+                timeout.sec++;
+                
+                DmtxRegion *reg;
+                while((reg = dmtxRegionFindNext(dec, &timeout)) != 0)
+                {
+                    DmtxMessage *msg = dmtxDecodeMatrixRegion(dec, reg, DmtxUndefined);
+                    if(msg)
+                    {
+                        symbols.push_back(std::string((const char *)msg->output, msg->outputSize));
+                        dmtxMessageDestroy(&msg);
+                    }
+                    dmtxRegionDestroy(&reg);
+                    if(!all) break;
+                    timeout = dmtxTimeNow();
+                    timeout.sec++;
+                }
+                dmtxDecodeDestroy(&dec);
+            }
+            dmtxImageDestroy(&img);
+        }
+        
+        return symbols;
+    }
+    
+    /*
+     Windows reads the GDI+ red channel (sRGB) while macOS draws into Generic RGB (gamma 1.8),
+     so the same picture can produce different intensities around module edges.
+     The first pass is unchanged; only a pass that decodes nothing is retried once on Windows,
+     with the intensities mapped through a WIC sRGB -> gamma 1.8 curve.
+     */
+    std::vector<std::string> readSymbols(Buf &buf, size_t w, size_t h, bool all)
+    {
+        std::vector<std::string> symbols = decodeSymbols(buf, w, h, all);
+#if VERSIONWIN
+        if(symbols.empty() && !buf.empty())
+        {
+            try
+            {
+                Buf retry = windows_dmtx::retryPixels(buf);
+                symbols = decodeSymbols(retry, w, h, all);
+            }
+            catch(const std::exception &error)
+            {
+                OutputDebugStringA("DMTX: ");
+                OutputDebugStringA(error.what());
+                OutputDebugStringA("\n");
+            }
+        }
+#endif
+        return symbols;
+    }
+}
+
 void DMTX_Read_image(PA_PluginParameters params) {
 
     C_TEXT returnValue;
@@ -887,33 +959,15 @@ void DMTX_Read_image(PA_PluginParameters params) {
     
     barcode::Buf buf;
     barcode::getBuf(image, buf, w, h);
-
-    DmtxImage *img = dmtxImageCreate(&buf[0], (int)w, (int)h, DmtxPack8bppK);
-    
-    if(img)
-    {
-        DmtxDecode *dec = dmtxDecodeCreate(img, 1);
-        if(dec)
-        {
-            DmtxTime timeout = dmtxTimeNow();
-            timeout.sec++;
-            DmtxRegion *reg;
-            if((reg = dmtxRegionFindNext(dec, &timeout)) != 0)
-            {
-                DmtxMessage *msg = dmtxDecodeMatrixRegion(dec, reg, DmtxUndefined);
-                if(msg)
-                {
-                    returnValue.setUTF8String(msg->output, (uint32_t)msg->outputSize);
-                    dmtxMessageDestroy(&msg);
-                }
-                dmtxRegionDestroy(&reg);
-            }
-            dmtxDecodeDestroy(&dec);
-        }
-        dmtxImageDestroy(&img);
-    }
     
     barcode::disposeImage(image);
+
+    std::vector<std::string> symbols = barcode::readSymbols(buf, w, h, false);
+    
+    if(!symbols.empty())
+    {
+        returnValue.setUTF8String((const uint8_t *)symbols[0].data(), (uint32_t)symbols[0].size());
+    }
 
     sLONG_PTR *pResult = (sLONG_PTR *)params->fResult;
     
@@ -926,7 +980,7 @@ void DMTX_Read_images(PA_PluginParameters params) {
     
     barcode::Image image = 0;
     
-    int w, h, size;
+    size_t w, h, size;
     size = w = h = 512;
     
     PA_Picture p = barcode::reduceImage(params, 1, size);
@@ -935,42 +989,20 @@ void DMTX_Read_images(PA_PluginParameters params) {
     barcode::Buf buf;
     barcode::getBuf(image, buf, w, h);
     
-    DmtxImage *img = dmtxImageCreate(&buf[0], w, h, DmtxPack8bppK);
-    
-    if(img)
-    {
-        DmtxDecode *dec = dmtxDecodeCreate(img, 1);
-        if(dec)
-        {
-            
-            DmtxTime timeout = dmtxTimeNow();
-            timeout.sec++;
-            
-            DmtxRegion *reg;
-            while((reg = dmtxRegionFindNext(dec, &timeout)) != 0)
-            {
-                DmtxMessage *msg = dmtxDecodeMatrixRegion(dec, reg, DmtxUndefined);
-                if(msg)
-                {
-                    PA_Variable v = PA_CreateVariable(eVK_Undefined);
-                    C_TEXT u;
-                    u.setUTF8String(msg->output, (uint32_t)msg->outputSize);
-                    PA_Unistring ustr = PA_CreateUnistring((PA_Unichar *)u.getUTF16StringPtr());
-                    PA_SetStringVariable(&v, &ustr);
-                    PA_SetCollectionElement(returnValue, PA_GetCollectionLength(returnValue), v);
-                    PA_ClearVariable(&v);
-                    dmtxMessageDestroy(&msg);
-                }
-                dmtxRegionDestroy(&reg);
-                timeout = dmtxTimeNow();
-                timeout.sec++;
-            }
-            dmtxDecodeDestroy(&dec);
-        }
-        dmtxImageDestroy(&img);
-    }
-    
     barcode::disposeImage(image);
+    
+    std::vector<std::string> symbols = barcode::readSymbols(buf, w, h, true);
+    
+    for(auto it = symbols.begin(); it != symbols.end(); ++it)
+    {
+        PA_Variable v = PA_CreateVariable(eVK_Undefined);
+        C_TEXT u;
+        u.setUTF8String((const uint8_t *)it->data(), (uint32_t)it->size());
+        PA_Unistring ustr = PA_CreateUnistring((PA_Unichar *)u.getUTF16StringPtr());
+        PA_SetStringVariable(&v, &ustr);
+        PA_SetCollectionElement(returnValue, PA_GetCollectionLength(returnValue), v);
+        PA_ClearVariable(&v);
+    }
 
     PA_ReturnCollection(params, returnValue);
 }

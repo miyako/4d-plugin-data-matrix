@@ -25,6 +25,7 @@ Releases: [github.com/miyako/4d-plugin-data-matrix/releases](https://github.com/
 - **All eight parameters of [DMTX](#dmtx) are read on every call.** There is no short form.
 - **The commands are thread-safe** (`threadSafe: true` in the manifest), so you can call them from preemptive processes. The plugin's own test methods are declared `"preemptive":"capable"`.
 - **Decoding blocks the calling process** while libdmtx scans the picture. Each search is limited to about one second (see [DMTX Read images](#dmtx-read-images) for how that adds up). In a cooperative process the 4D interface doesn't respond during that time.
+- **On Windows, a read that finds nothing is tried a second time** with adjusted grayscale (see [Windows no-match retry](#windows-no-match-retry)), so a miss can take up to about twice as long there.
 - **Sizes are in pixels, and the module size counts twice** (see [DMTX](#dmtx)): one module of the symbol is `moduleSize × moduleSize` pixels wide, not `moduleSize`.
 - The text is encoded as UTF-8 bytes, and the read commands interpret the decoded bytes as UTF-8.
 - The universal macOS binary (arm64 + x86_64) built by this repository's release workflow requires macOS 11.5 or later.
@@ -168,6 +169,14 @@ The command first reduces `image` to a thumbnail of at most 512 × 512 pixels (4
 - **On Windows**, the thumbnail's pixels are read as they are; the part of the 512 × 512 buffer outside a non-square thumbnail stays black (inferred from the source).
 - Because of the reduction to 512 pixels, a symbol that is small relative to a large picture may lose too much detail to be found (inferred). Crop the picture around the symbol first if decoding fails.
 
+#### Windows no-match retry
+
+The two platforms convert the picture to grayscale differently. macOS draws it into the Generic RGB color space (gamma 1.8) and Windows reads GDI+'s sRGB red channel, so the same picture can give slightly different gray levels around the edges of the modules. That matters most for low-contrast pictures.
+
+On Windows, the first search uses the GDI+ gray levels exactly as before, and anything it finds is returned unchanged. Only when the first search decodes nothing does the plugin search once more. That second search uses a copy of the gray levels mapped through a curve that Windows Imaging Component (WIC) computes from sRGB to a gamma 1.8 space (built once per process, then reused). The picture isn't resized, cropped or binarized, and libdmtx's settings don't change. The second search gets its own one-second limit. If WIC is unavailable, the retry is skipped and the result stays empty; a message is written to the Windows debugger output (`OutputDebugString`).
+
+The retry brings the Windows gray levels closer to the macOS ones, but it doesn't reproduce them exactly. Results can still differ between platforms. macOS doesn't use the retry.
+
 An empty picture, or picture data that can't be turned into an image, returns `""`. Before 2.7.1, such a picture could crash 4D on macOS in compiled mode.
 
 ### Example
@@ -225,7 +234,7 @@ DMTX Read images ( image ) -> Collection
 
 ### Description
 
-Same preparation as [DMTX Read image](#dmtx-read-image) (thumbnail of at most 512 × 512 pixels, grayscale). Then the command keeps asking libdmtx for the next symbol until none is left. Each search gets its own one-second limit, which restarts after every region found, so the total time grows with the number of candidate regions in the picture. A region that libdmtx locates but can't decode is skipped.
+Same preparation as [DMTX Read image](#dmtx-read-image) (thumbnail of at most 512 × 512 pixels, grayscale, and on Windows the [no-match retry](#windows-no-match-retry), used only when the first pass decodes no symbol at all). Then the command keeps asking libdmtx for the next symbol until none is left. Each search gets its own one-second limit, which restarts after every region found, so the total time grows with the number of candidate regions in the picture. A region that libdmtx locates but can't decode is skipped.
 
 ### Example
 
