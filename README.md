@@ -259,6 +259,7 @@ End for each
 - **Read returns `""` or an empty collection**: no symbol was found within the time limit. Crop the area around the symbol or improve the contrast; the picture is reduced to 512 × 512 pixels before decoding.
 - **The 4D interface stops responding while reading**: decoding runs in the calling process for up to about a second per search. Call the read commands from a worker or a preemptive process.
 - **Non-ASCII text**: it is encoded as UTF-8 bytes. Other Data Matrix readers may interpret the bytes as ISO 8859-1 unless they assume UTF-8.
+- **Memory grows with repeated reads (2.7.1 and earlier)**: every `DMTX Read image` and `DMTX Read images` call leaked one picture, the size of the 512-pixel thumbnail. In interpreted mode this was the thumbnail. In compiled mode it was the converted copy of the thumbnail. Later versions dispose both. `tests/ownership/run.sh` checks this against a simulated 4D engine (macOS, ASan/UBSan).
 
 ---
 

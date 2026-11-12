@@ -64,9 +64,9 @@ namespace barcode
         PA_SetLongintVariable(&args[4], Scaled_to_fit_proportional);
         
         PA_ExecuteCommandByID(CREATE_THUMBNAIL, args, 5);
-        p = PA_GetPictureVariable(args[1]);/* this is a new picture that belongs to 4D; do not dispose it */
+        p = PA_GetPictureVariable(args[1]);/* new picture: detached below, so the caller owns it and must dispose it */
         
-        PA_SetPictureVariable(&args[0], NULL);
+        PA_SetPictureVariable(&args[0], NULL);/* the parameter picture is borrowed */
         PA_SetPictureVariable(&args[1], NULL);
         
         PA_ClearVariable(&args[0]);
@@ -102,38 +102,41 @@ namespace barcode
             Image i = NULL;
             
             //convert picture
-            PA_Variable args[3];
+            PA_Variable args[2];
             args[0] = PA_CreateVariable(eVK_Undefined);
-            PA_SetPictureVariable(&args[0], p);
+            /*
+             CONVERT PICTURE replaces the picture held by the variable; give the variable its own
+             reference so the caller's picture is not consumed, and keep the variable (which owns
+             the converted picture) until the data has been read, then clear it
+             */
+            PA_SetPictureVariable(&args[0], PA_DuplicatePicture(p, 1));
             args[1] = PA_CreateVariable(eVK_Undefined);/* eVK_Unistring would allocate a string that the setter overwrites */
             PA_Unistring ustr = PA_CreateUnistring((PA_Unichar *)u".bmp");
             PA_SetStringVariable(&args[1], &ustr);
             
             PA_ExecuteCommandByID(CONVERT_PICTURE, args, 2);
             
-            p = PA_GetPictureVariable(args[0]);/* the picture has been converted */
+            p = PA_GetPictureVariable(args[0]);/* the converted picture; borrowed from args[0] */
             
-            PA_SetPictureVariable(&args[0], NULL);
-            
-            PA_ClearVariable(&args[0]);
             PA_ClearVariable(&args[1]);
             
 #if VERSIONWIN
-            args[0] = PA_CreateVariable(eVK_Undefined);
-            PA_SetPictureVariable(&args[0], p);
-            args[1] = PA_CreateVariable(eVK_Longint);
-            args[2] = PA_CreateVariable(eVK_Longint);
+            PA_Variable props[3];
+            props[0] = PA_CreateVariable(eVK_Undefined);
+            PA_SetPictureVariable(&props[0], p);
+            props[1] = PA_CreateVariable(eVK_Longint);
+            props[2] = PA_CreateVariable(eVK_Longint);
             
-            PA_ExecuteCommandByID(PICTURE_PROPERTIES, args, 3);
+            PA_ExecuteCommandByID(PICTURE_PROPERTIES, props, 3);
             
-            int _w = PA_GetLongintVariable(args[1]);
-            int _h = PA_GetLongintVariable(args[2]);
+            int _w = PA_GetLongintVariable(props[1]);
+            int _h = PA_GetLongintVariable(props[2]);
             
-            PA_SetPictureVariable(&args[0], NULL);
+            PA_SetPictureVariable(&props[0], NULL);/* borrowed */
             
-            PA_ClearVariable(&args[0]);
-            PA_ClearVariable(&args[1]);
-            PA_ClearVariable(&args[2]);
+            PA_ClearVariable(&props[0]);
+            PA_ClearVariable(&props[1]);
+            PA_ClearVariable(&props[2]);
 #endif
             
             PA_Handle h = PA_NewHandle(0);
@@ -174,6 +177,8 @@ namespace barcode
             }
 
             PA_DisposeHandle(h);
+            
+            PA_ClearVariable(&args[0]);/* disposes the converted picture */
 
             return i;
         }
@@ -956,6 +961,7 @@ void DMTX_Read_image(PA_PluginParameters params) {
     
     PA_Picture p = barcode::reduceImage(params, 1, size);
     image = barcode::createImage(p);
+    if(p) PA_DisposePicture(p);/* the thumbnail returned by reduceImage */
     
     barcode::Buf buf;
     barcode::getBuf(image, buf, w, h);
@@ -985,6 +991,7 @@ void DMTX_Read_images(PA_PluginParameters params) {
     
     PA_Picture p = barcode::reduceImage(params, 1, size);
     image = barcode::createImage(p);
+    if(p) PA_DisposePicture(p);/* the thumbnail returned by reduceImage */
     
     barcode::Buf buf;
     barcode::getBuf(image, buf, w, h);
